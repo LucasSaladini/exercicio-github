@@ -11,6 +11,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 
+import { AuthProvider } from "@/providers/AuthProvider"
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"]
@@ -44,8 +46,10 @@ export default function RootLayout({
       >
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-            <Toaster richColors position="top-right" duration={4000} />
+            <AuthProvider>
+              {children}
+              <Toaster richColors position="top-right" duration={4000} />
+            </AuthProvider>
           </ThemeProvider>
 
           {process.env.NODE_ENV === "development" && (

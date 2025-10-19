@@ -15,7 +15,7 @@ export default function OrdersPage() {
         <ProductList products={mockProduts} />
       </div>
       <div>
-        <OrderSummary />
+        <OrderSummary items={[]} />
       </div>
     </main>
   )

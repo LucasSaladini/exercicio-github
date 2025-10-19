@@ -1,30 +1,59 @@
 "use client"
 
-import { useCartStore } from "../hooks/useCartStore"
+import { CartItem, useCartStore } from "@/hooks/useCartStore"
+import { useAuthStore } from "@/store/useAuthStore"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
+import { User } from "@supabase/supabase-js"
 
-export function OrderSummary() {
+interface OrderSummaryProps {
+  items: CartItem[]
+  refreshCart?: () => void
+  user?: User | null
+}
+
+export function OrderSummary({ refreshCart }: OrderSummaryProps) {
   const { items, clearCart, updateQuantity, removeItem } = useCartStore()
+  const { user } = useAuthStore()
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
-  const handleSubmit = () => {
-    if (!items.length) return toast.error("Carrinho vazio")
-    toast.success("Pedido enviado com sucesso")
-    clearCart()
-  }
-
   const handleDecrease = (id: string, quantity: number) => {
-    if (quantity <= 1) {
-      removeItem(id)
-    } else {
-      updateQuantity(id, quantity - 1)
-    }
+    if (quantity <= 1) removeItem(id)
+    else updateQuantity(id, quantity - 1)
   }
 
   const handleIncrease = (id: string, quantity: number) => {
     updateQuantity(id, quantity + 1)
+  }
+
+  const handleSubmit = async () => {
+    if (!items.length) return toast.error("Carrinho vazio")
+
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items,
+          customer_name: user?.email || "Cliente" // pegar usuário logado
+        })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || "Erro ao enviar pedido")
+
+      toast.success("Pedido enviado com sucesso")
+      clearCart()
+      refreshCart?.()
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error(err.message)
+      } else {
+        toast.error(String(err))
+      }
+    }
   }
 
   return (
@@ -44,7 +73,7 @@ export function OrderSummary() {
             >
               -
             </Button>
-            <span className="w-8 text-center">{item.quantity}</span>{" "}
+            <span className="w-8 text-center">{item.quantity}</span>
             <Button
               size="sm"
               onClick={() => handleIncrease(item.id, item.quantity)}
