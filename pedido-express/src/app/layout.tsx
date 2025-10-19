@@ -1,6 +1,5 @@
 "use client"
 
-import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 
@@ -21,12 +20,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"]
 })
-
-export const metadata: Metadata = {
-  title: "Pedido Express",
-  description:
-    "Sistema de pedidos rápido e inteligente para estabelecimentos locais"
-}
 
 export default function RootLayout({
   children
@@ -52,7 +45,7 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             {children}
-            <Toaster richColors position="top-center" duration={4000} />
+            <Toaster richColors position="top-right" duration={4000} />
           </ThemeProvider>
 
           {process.env.NODE_ENV === "development" && (
