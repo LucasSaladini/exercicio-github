@@ -12,6 +12,10 @@ interface Product {
   name: string
   price: number
   quantity?: number
+  description: string
+  stock_quantity: number
+  created_at: string
+  updated_at: string
 }
 
 export default function MenuPage() {
@@ -54,11 +58,15 @@ export default function MenuPage() {
       const quantity =
         cartItems.find((item) => item.id === product.id)?.quantity ?? 1
 
-      const item: Product & { quantity: number } = {
+      const item: Product = {
         id: product.id,
         name: product.name,
         price: product.price,
-        quantity
+        quantity,
+        description: product.description,
+        stock_quantity: product.stock_quantity,
+        created_at: product.created_at,
+        updated_at: product.updated_at
       }
 
       addItem(item)
