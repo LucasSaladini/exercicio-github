@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
-import { OrderSummary } from "@/app/features/orders/components/OrderSummary"
+import { OrderSummary } from "../../features/orders/components/OrderSummary"
 import { useCartStore } from "@/hooks/useCartStore"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 

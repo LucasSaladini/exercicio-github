@@ -1,6 +1,6 @@
 "use client"
 
-import { ProductCard, Product } from "@/app/(protected)/products/ProductCard"
+import { ProductCard, Product } from "../../../(protected)/products/ProductCard"
 
 interface ProductListProps {
   products: Product[]

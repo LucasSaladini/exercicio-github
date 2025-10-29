@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { Product } from "@/app/features/orders/types"
+import { Product } from "../../app/features/orders/types"
 
 export interface CartItem extends Product {
   id: string

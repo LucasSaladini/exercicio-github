@@ -13,7 +13,7 @@ import {
   TableRow
 } from "@/components/ui/table"
 import { toast } from "sonner"
-import { Product } from "@/app/features/orders/types"
+import { Product } from "../../features/orders/types"
 import ProductDialog from "./ProductDialog"
 import Image from "next/image"
 

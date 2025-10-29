@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { OrderSummary } from "@/app/features/orders/components/OrderSummary"
+import { OrderSummary } from "../../features/orders/components/OrderSummary"
 import { toast } from "sonner"
 
 export default function CartPage() {
