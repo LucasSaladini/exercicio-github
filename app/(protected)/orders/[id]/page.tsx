@@ -8,6 +8,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 import clsx from "clsx"
+import ReviewForm from "@/components/ReviewForm"
+import ReviewList from "@/components/ReviewList"
+import { toast } from "sonner"
+import { Separator } from "@/components/ui/separator"
 
 type OrderItem = {
   name: string
@@ -27,11 +31,21 @@ type Order = {
   items: OrderItem[]
 }
 
+interface Review {
+  id: number
+  order_id: number
+  rating: number
+  comment: string
+  created_at: string
+}
+
 export default function OrderPage() {
   const supabase = createClientComponentClient()
   const params = useParams()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasReview, setHasReview] = useState(false)
+  const [review, setReview] = useState<Review | null>(null)
 
   const orderId = params?.id ? Number(params.id) : null
 
@@ -51,12 +65,26 @@ export default function OrderPage() {
         setOrder(data as Order)
       }
 
+      const { data: reviewData, error: reviewError } = await supabase
+        .from("orders_reviews")
+        .select("*")
+        .eq("order_id", orderId)
+        .single()
+
+      if (reviewError) {
+        toast.error("Erro ao buscar avaliação", {
+          description: (reviewError as Error)?.message ?? "Erro inesperado"
+        })
+      } else {
+        setReview(reviewData)
+        setHasReview(!!reviewData)
+      }
+
       setLoading(false)
     }
 
     fetchOrder()
 
-    // 🔁 Atualização em tempo real
     const channel = supabase
       .channel(`order-${orderId}`)
       .on(
@@ -68,7 +96,9 @@ export default function OrderPage() {
           filter: `id=eq.${orderId}`
         },
         (payload) => {
-          setOrder(payload.new as Order)
+          if (payload.new) {
+            setOrder(payload.new as Order)
+          }
         }
       )
       .subscribe()
@@ -181,6 +211,29 @@ export default function OrderPage() {
           </div>
         </CardContent>
       </Card>
+      <div className="mt-8 space-y-6">
+        {!hasReview ? (
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Avaliar Pedido</h2>
+            <ReviewForm
+              orderId={order.id}
+              onSuccess={() => {
+                setHasReview(true)
+                toast.success("Avaliação enviada com sucesso!")
+              }}
+            />
+          </div>
+        ) : (
+          <p className="text-green-600 text-sm">
+            Avaliação já enviada para este pedido
+          </p>
+        )}
+        <Separator />
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Avaliações da Loja</h2>
+          <ReviewList />
+        </div>
+      </div>
     </div>
   )
 }
