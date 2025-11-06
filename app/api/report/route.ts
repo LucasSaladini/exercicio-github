@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     salesData?.forEach((sale) => {
         const id = sale.product_id
 
-        if (reportMap[id]) {
+        if (!reportMap[id]) {
             reportMap[id] = {
                 productId: id,
                 productName: sale.products?.[id]?.name || "",
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
         productName: r.productName,
         totalSales: r.totalSales,
         totalRevenue: r.totalRevenue,
-        avgRating: r.ratingCount ? r.avgRating : 0,
+        avgRating: r.ratingCount ? Number((r.avgRating / r.ratingCount).toFixed(2)) : 0,
     }))
 
     return NextResponse.json({ report })
