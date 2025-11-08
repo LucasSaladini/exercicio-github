@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { FileDown, FileText } from "lucide-react"
-import { jsPDF } from "jspdf"
-import Papa from "papaparse"
 import {
   BarChart,
   Bar,
@@ -11,8 +9,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  Label
+  ResponsiveContainer
 } from "recharts"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,6 +21,7 @@ import {
   SelectValue,
   SelectContent
 } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 
@@ -45,25 +43,14 @@ export default function ReportsPage() {
 
   const fetchReports = useCallback(async () => {
     setLoading(true)
-
     try {
       const params = new URLSearchParams()
-
-      if (startDate) {
-        params.append("startDate", startDate)
-      }
-
-      if (endDate) {
-        params.append("endDate", endDate)
-      }
-
-      if (productId) {
-        params.append("productId", productId)
-      }
+      if (startDate) params.append("startDate", startDate)
+      if (endDate) params.append("endDate", endDate)
+      if (productId) params.append("productId", productId)
 
       const res = await fetch(`/api/reports?${params.toString()}`)
       const json = await res.json()
-
       setData(json.report || [])
     } catch (error) {
       toast.error(String(error))
@@ -83,43 +70,35 @@ export default function ReportsPage() {
       .from("products")
       .select("id, name")
       .order("name", { ascending: true })
+    if (!error && data) setProducts(data)
+  }
 
-    if (!error && data) {
-      setProducts(data)
+  const handleExport = async (type: "pdf" | "csv") => {
+    try {
+      const params = new URLSearchParams()
+      if (startDate) params.append("startDate", startDate)
+      if (endDate) params.append("endDate", endDate)
+      if (productId) params.append("productId", productId)
+      params.append("type", type)
+
+      const res = await fetch(`/api/reports/export?${params.toString()}`, {
+        method: "GET"
+      })
+
+      if (!res.ok) throw new Error("Erro ao exportar relatório")
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `relatorio_de_vendas_e_avaliacoes.${type}`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      toast.error("Falha ao gerar arquivo de exportação ", {
+        description: (error as Error)?.message ?? "Erro inesperado"
+      })
     }
-  }
-
-  const exportCSV = () => {
-    const csv = Papa.unparse(data)
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
-    const link = document.createElement("a")
-
-    link.href = URL.createObjectURL(blob)
-    link.download = "relatorio_de_vendas_e_avaliacoes.csv"
-    link.click()
-  }
-
-  const exportPDF = () => {
-    const doc = new jsPDF()
-
-    doc.text("Relatório de Vendas e Avaliações", 10, 10)
-
-    let y = 20
-
-    data.forEach((item) => {
-      doc.text(
-        `${item.productName} - Vendas: ${
-          item.totalSales
-        } | Faturamento: ${item.totalRevenue.toFixed(
-          2
-        )} | Avaliação: ${item.avgRating.toFixed(1)}`,
-        10,
-        y
-      )
-      y += 10
-    })
-
-    doc.save("relatorio_de_vendas_e_avaliacoes.pdf")
   }
 
   return (
@@ -148,7 +127,7 @@ export default function ReportsPage() {
           <div>
             <Label className="block text-sm mb-1">Produto</Label>
             <Select onValueChange={(v) => setProductId(v)}>
-              <SelectTrigger className="w-[200px">
+              <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Selecione um produto" />
               </SelectTrigger>
               <SelectContent>
@@ -162,18 +141,19 @@ export default function ReportsPage() {
             </Select>
           </div>
           <Button onClick={fetchReports} disabled={loading}>
-            {loading ? "Carregando" : "Filtrar"}
+            {loading ? "Carregando..." : "Filtrar"}
           </Button>
         </CardContent>
       </Card>
+
       <Card>
         <CardHeader className="flex justify-between items-center">
           <CardTitle>Relatório de Vendas e Avaliações</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportCSV}>
+            <Button variant="outline" onClick={() => handleExport("csv")}>
               <FileText className="w-4 h-4 mr-2" /> CSV
             </Button>
-            <Button variant="outline" onClick={exportPDF}>
+            <Button variant="outline" onClick={() => handleExport("pdf")}>
               <FileDown className="w-4 h-4 mr-2" /> PDF
             </Button>
           </div>
