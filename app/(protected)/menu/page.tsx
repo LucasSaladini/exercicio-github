@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
@@ -21,8 +22,9 @@ interface Product {
 export default function MenuPage() {
   const queryClient = useQueryClient()
   const { items: cartItems, addItem } = useCartStore()
+  const [addingIds, setAddingIds] = useState<Set<string>>(new Set())
 
-  // Fetch produtos
+  // Fetch produtos com cache de 5 minutos
   const { data: products = [], isLoading: productsLoading } = useQuery<
     Product[]
   >({
@@ -31,7 +33,8 @@ export default function MenuPage() {
       const res = await fetch("/api/products")
       if (!res.ok) throw new Error("Erro ao carregar produtos")
       return res.json()
-    }
+    },
+    staleTime: 1000 * 60 * 5 // 5 minutos
   })
 
   // Mutation para adicionar ao carrinho
@@ -72,46 +75,64 @@ export default function MenuPage() {
       addItem(item)
       toast.success(`${product.name} adicionado ao carrinho!`)
       await queryClient.invalidateQueries({ queryKey: ["cart"] })
+
+      setAddingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(product.id)
+        return next
+      })
     },
-    onError: (err: unknown) => {
+    onError: (err: unknown, product: Product) => {
       if (err instanceof Error) toast.error(err.message)
       else toast.error(String(err))
+
+      setAddingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(product.id)
+        return next
+      })
     }
   })
-
-  const isAdding = addToCartMutation.status === "pending"
 
   if (productsLoading) return <p className="p-6">Carregando produtos...</p>
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 p-6">
-      {/* Cardápio */}
       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((product) => (
-          <Card key={product.id} className="p-4 flex flex-col justify-between">
-            <div>
-              <h3 className="font-semibold text-lg">{product.name}</h3>
-              <p className="mt-1 text-gray-600">
-                {new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL"
-                }).format(product.price)}
-              </p>
-            </div>
-            <Button
-              className="mt-4"
-              onClick={() => addToCartMutation.mutate(product)}
-              disabled={isAdding}
+        {products.map((product) => {
+          const isAdding = addingIds.has(product.id)
+
+          return (
+            <Card
+              key={product.id}
+              className="p-4 flex flex-col justify-between"
             >
-              {isAdding ? "Adicionando..." : "Adicionar ao carrinho"}
-            </Button>
-          </Card>
-        ))}
+              <div>
+                <h3 className="font-semibold text-lg">{product.name}</h3>
+                <p className="mt-1 text-gray-600">
+                  {new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL"
+                  }).format(product.price)}
+                </p>
+              </div>
+              <Button
+                className="mt-4"
+                onClick={() => {
+                  setAddingIds((prev) => new Set(prev).add(product.id))
+                  addToCartMutation.mutate(product)
+                }}
+                disabled={isAdding}
+              >
+                {isAdding ? "Adicionando" : "Adicionar ao carrinho"}
+              </Button>
+            </Card>
+          )
+        })}
       </div>
 
-      {/* Resumo do pedido */}
       <div className="w-full lg:w-96">
-        <OrderSummary items={[]} />
+        <OrderSummary items={cartItems} />
       </div>
     </div>
   )
