@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { createEphemeralClient } from "@/lib/supabase/sessionClient"
 import { useAuthStore } from "@/store/useAuthStore"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -11,24 +11,38 @@ import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { user, setUser } = useAuthStore()
+  const { setUser } = useAuthStore()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  const supabase = createEphemeralClient()
+
   useEffect(() => {
-    if (user) router.replace("/menu")
-  }, [user, router])
+    const init = async () => {
+      await supabase.auth.signOut()
+
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        router.replace("/menu")
+      }
+    }
+
+    init()
+  }, [router, supabase])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    const supabase = createClient()
     const { data, error: signInError } = await supabase.auth.signInWithPassword(
-      { email, password }
+      {
+        email,
+        password
+      }
     )
+
     setLoading(false)
 
     if (signInError) {
@@ -67,7 +81,7 @@ export default function LoginPage() {
               required
             />
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+              {loading ? "Entrando" : "Entrar"}
             </Button>
             <p className="text-sm text-center">
               Não tem conta?{" "}

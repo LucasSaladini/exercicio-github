@@ -8,7 +8,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkSession()
-  }, [checkSession])
+  }, [])
 
   if (loading) {
     return (
