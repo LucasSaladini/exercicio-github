@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import clsx from "clsx"
+import { useOrderNotification } from "@/hooks/useOrderNotifications"
 
 type Order = {
   id: number
@@ -18,6 +19,7 @@ type Order = {
 }
 
 export default function OrdersPage() {
+  useOrderNotification()
   const supabase = createClientComponentClient()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
