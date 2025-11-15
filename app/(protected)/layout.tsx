@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuthStore } from "@/store/useAuthStore"
 import { Loader2 } from "lucide-react"
+import MainMenu from "@/components/layout/MainMenu"
 
 export default function ProtectedLayout({
   children
@@ -29,7 +30,7 @@ export default function ProtectedLayout({
     }
   }, [user, loading, pathname, router])
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -38,5 +39,12 @@ export default function ProtectedLayout({
     )
   }
 
-  return <>{children}</>
+  const role = user.role as "admin" | "atendant" | "customer"
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <MainMenu role={role} />
+      <main className="flex-1">{children}</main>
+    </div>
+  )
 }
