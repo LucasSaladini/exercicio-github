@@ -23,8 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
-
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 type ReportItem = {
   productId: string
   productName: string
@@ -65,7 +64,7 @@ export default function ReportsPage() {
   }, [fetchReports])
 
   async function fetchProducts() {
-    const supabase = createClient()
+    const supabase = createClientComponentClient()
     const { data, error } = await supabase
       .from("products")
       .select("id, name")
