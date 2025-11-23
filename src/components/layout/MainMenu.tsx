@@ -92,7 +92,7 @@ export default function MainMenu({ role }: MainMenuProps) {
 
   const renderSubmenu = (submenu: MenuItem[]) => {
     return (
-      <div className="absolute mt-2 bg-white shadow-md border rounded-md py-2 z-30">
+      <div className="absolute mt-2 bg-black shadow-md border rounded-md py-2 z-30">
         {submenu.map((sub, i) => (
           <div key={i} className="px-2">
             {!sub.submenu && sub.href && NavLink(sub.href, sub.label)}
@@ -102,7 +102,7 @@ export default function MainMenu({ role }: MainMenuProps) {
                   {sub.label}
                   <ChevronDown className="w-4 h-4" />
                 </button>
-                <div className="absolute left-full top-0 ml-2 bg-white shadow-md border rounded-md py-2 hidden group-hover:block">
+                <div className="absolute left-full top-0 ml-2 bg-black shadow-md border rounded-md py-2 hidden group-hover:block">
                   {sub.submenu.map((deep, k) => (
                     <div key={k} className="px-2">
                       {NavLink(deep.href!, deep.label)}
@@ -118,7 +118,7 @@ export default function MainMenu({ role }: MainMenuProps) {
   }
 
   return (
-    <header className="w-full bg-white shadow-sm border-b">
+    <header className="w-full bg-black shadow-sm border-b">
       <div className="max-w-6xl mx-auto flex justify-between items-center p-4">
         <div className="font-semibold text-lg">Pedido Express</div>
         <nav className="hidden md:flex gap-6 relative">
