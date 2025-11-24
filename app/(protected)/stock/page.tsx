@@ -86,7 +86,7 @@ export default function StockPage() {
   useEffect(() => {
     fetchProducts()
 
-    const interval = setInterval(fetchProducts, 5000)
+    const interval = setInterval(fetchProducts, 10000000)
     return () => clearInterval(interval)
   }, [fetchProducts])
 
@@ -137,7 +137,7 @@ export default function StockPage() {
               return (
                 <tr key={p.id} className="border-b">
                   <td className="py-2">{p.name}</td>
-                  <td>R$ {p.price.toFixed(2)}</td>
+                  <td>{p.stock_quantity}</td>
                   <td>
                     {isOut ? (
                       <Badge variant="destructive">Esgotado</Badge>

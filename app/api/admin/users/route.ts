@@ -12,18 +12,9 @@ export async function GET(req: Request) {
   const to = from + limit - 1
 
   const search = searchParams.get("search")?.trim() ?? ""
-
   const role = searchParams.get("role") ?? ""
-
   const sortBy = searchParams.get("sortBy") ?? "created_at"
   const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc"
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user || user.user_metadata.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
 
   let query = supabase
     .from("users")
@@ -32,7 +23,9 @@ export async function GET(req: Request) {
     .order(sortBy, { ascending: sortOrder === "asc" })
 
   if (search) {
-    query = query.ilike("name", `%${search}%`).ilike("email", `%${search}%`)
+    query = query.or(
+      `full_name.ilike.%${search}%,email.ilike.%${search}%`
+    )
   }
 
   if (role) query = query.eq("role", role)

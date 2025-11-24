@@ -1,17 +1,4 @@
-import { getUser } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
-
 export default async function DeliverOrdersPage() {
-    const user = await getUser()
-    
-    if(!user) {
-        return redirect("/(auth)/login")
-    }
-
-    if(user.role !== "admin") {
-        return redirect("/(protected/menu")
-    }
-
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/orders?type=deliver`, {
         cache: "no-cache"
     })
@@ -26,7 +13,7 @@ export default async function DeliverOrdersPage() {
             )}
 
             <div className="grid gap-4">
-                {orders.map((order: any) => {
+                {orders.map((order: any) => (
                     <div key={order.id} className="border rounded-lg p-4 shadow-sm">
                         <p><strong>ID:</strong> {order.id}</p>
                         <p><strong>Cliente:</strong> {order.customer_name}</p>
@@ -34,7 +21,7 @@ export default async function DeliverOrdersPage() {
                         <p><strong>Tipo:</strong> Entrega</p>
                         <p><strong>Total:</strong> R$ {order.total}</p>
                     </div>
-                })}
+                ))}
             </div>
         </div>
     )

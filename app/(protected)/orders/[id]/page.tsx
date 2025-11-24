@@ -46,41 +46,94 @@ export default function OrderPage() {
   const [loading, setLoading] = useState(true)
   const [hasReview, setHasReview] = useState(false)
   const [review, setReview] = useState<Review | null>(null)
+  const [reviewsUpdated, setReviewsUpdated] = useState(false)
 
   const orderId = params?.id ? Number(params.id) : null
+
+  const statusLabels: Record<string, string> = {
+    pending: "Pendente",
+    preparing: "Em preparo",
+    ready: "Pronto",
+    delivered: "Entregue"
+  }
+
+  const statusColor = (status: string): string =>
+    clsx(
+      "capitalize px-3 py-1 rounded-full text-sm font-semibold",
+      status === "pending" && "bg-red-100 text-red-800 border border-red-200",
+      status === "preparing" &&
+        "bg-yellow-100 text-yellow-800 border border-yellow-200",
+      status === "ready" && "bg-blue-100 text-blue-800 border border-blue-200",
+      status === "delivered" &&
+        "bg-green-100 text-green-800 border border-green-200"
+    )
 
   useEffect(() => {
     if (!orderId) return
 
     const fetchOrder = async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("id", orderId)
-        .single()
+      try {
+        const { data: orderData, error: orderError } = await supabase
+          .from("orders")
+          .select(`
+            *,
+            order_items (
+              quantity,
+              product:products (
+                name,
+                price
+              )
+            )
+          `)
+          .eq("id", orderId)
+          .maybeSingle()
 
-      if (error) {
-        console.error("Erro ao buscar pedido:", error)
-      } else {
-        setOrder(data as Order)
+        if (orderError) throw orderError
+        if (!orderData) {
+          setOrder(null)
+          setLoading(false)
+          return
+        }
+
+        const items: OrderItem[] = (orderData.order_items ?? []).map(
+          (item: { product: { name: any; price: any }; quantity: any }) => ({
+            name: item.product?.name ?? "Produto desconhecido",
+            quantity: item.quantity,
+            price: item.product?.price ?? 0
+          })
+        )
+
+        setOrder({
+          ...orderData,
+          items
+        } as Order)
+
+        const { data: reviewData, error: reviewError } = await supabase
+          .from("orders_reviews")
+          .select("*")
+          .eq("order_id", orderId)
+          .maybeSingle()
+
+        if (reviewError) {
+          toast.error("Erro ao buscar avaliação", {
+            description: reviewError.message
+          })
+        } else {
+          setReview(reviewData)
+          setHasReview(!!reviewData)
+        }
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === "object"
+            ? JSON.stringify(err)
+            : String(err)
+        console.error("Erro ao buscar pedido:", message)
+        toast.error("Erro ao buscar pedido", { description: message })
+      } finally {
+        setLoading(false)
       }
-
-      const { data: reviewData, error: reviewError } = await supabase
-        .from("orders_reviews")
-        .select("*")
-        .eq("order_id", orderId)
-        .single()
-
-      if (reviewError) {
-        toast.error("Erro ao buscar avaliação", {
-          description: (reviewError as Error)?.message ?? "Erro inesperado"
-        })
-      } else {
-        setReview(reviewData)
-        setHasReview(!!reviewData)
-      }
-
-      setLoading(false)
     }
 
     fetchOrder()
@@ -97,7 +150,14 @@ export default function OrderPage() {
         },
         (payload) => {
           if (payload.new) {
-            setOrder(payload.new as Order)
+            const updatedItems: OrderItem[] = (payload.new.order_items ?? []).map(
+              (item: any) => ({
+                name: item.product?.name ?? "Produto desconhecido",
+                quantity: item.quantity,
+                price: item.product?.price ?? 0
+              })
+            )
+            setOrder({ ...payload.new, items: updatedItems } as Order)
           }
         }
       )
@@ -107,17 +167,6 @@ export default function OrderPage() {
       supabase.removeChannel(channel)
     }
   }, [supabase, orderId])
-
-  const statusColor = (status: string): string =>
-    clsx(
-      "capitalize px-3 py-1 rounded-full text-sm font-semibold",
-      status === "pending" && "bg-red-100 text-red-800 border border-red-200",
-      status === "preparing" &&
-        "bg-yellow-100 text-yellow-800 border border-yellow-200",
-      status === "ready" && "bg-blue-100 text-blue-800 border border-blue-200",
-      status === "delivered" &&
-        "bg-green-100 text-green-800 border border-green-200"
-    )
 
   if (loading) {
     return (
@@ -152,8 +201,37 @@ export default function OrderPage() {
               transition={{ duration: 0.3 }}
             >
               <Badge className={statusColor(order.status)}>
-                {order.status}
+                {statusLabels[order.status] ?? order.status}
               </Badge>
+              <select
+                className="bg-black text-white px-3 py-2 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 ml-2"
+                value={order.status}
+                onChange={async (e) => {
+                  const newStatus = e.target.value
+                  if (!orderId) return
+
+                  const { error } = await supabase
+                    .from("orders")
+                    .update({ status: newStatus })
+                    .eq("id", orderId)
+
+                  if (error) {
+                    toast.error("Erro ao atualizar status", {
+                      description: error.message
+                    })
+                  } else {
+                    setOrder((prev) =>
+                      prev ? { ...prev, status: newStatus } : prev
+                    )
+                    toast.success(`Status atualizado para ${statusLabels[newStatus] ?? newStatus}`)
+                  }
+                }}
+              >
+                <option value="pending">Pendente</option>
+                <option value="preparing">Em preparo</option>
+                <option value="ready">Pronto</option>
+                <option value="delivered">Entregue</option>
+              </select>
             </motion.div>
           </CardTitle>
         </CardHeader>
@@ -211,6 +289,7 @@ export default function OrderPage() {
           </div>
         </CardContent>
       </Card>
+
       <div className="mt-8 space-y-6">
         {!hasReview ? (
           <div>
@@ -219,6 +298,7 @@ export default function OrderPage() {
               orderId={order.id}
               onSuccess={() => {
                 setHasReview(true)
+                setReviewsUpdated((prev) => !prev)
                 toast.success("Avaliação enviada com sucesso!")
               }}
             />
@@ -228,10 +308,12 @@ export default function OrderPage() {
             Avaliação já enviada para este pedido
           </p>
         )}
+
         <Separator />
+
         <div>
           <h2 className="text-xl font-semibold mb-2">Avaliações da Loja</h2>
-          <ReviewList />
+          <ReviewList orderId={order.id} />
         </div>
       </div>
     </div>

@@ -79,7 +79,6 @@ function CheckoutInner({ clientSecret, amount, products }: PaymentFormProps) {
 
   return (
     <div className="space-y-6">
-      {/* Lista de produtos dentro do checkout */}
       <div className="w-full max-w-md shadow-md rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-800">
         {products.map((p) => (
           <div

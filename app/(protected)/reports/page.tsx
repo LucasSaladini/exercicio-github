@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 type ReportItem = {
   productId: string
@@ -38,19 +38,22 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false)
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
-  const [productId, setProductId] = useState("")
+  const [productId, setProductId] = useState("all")
   const [products, setProducts] = useState<{ id: string; name: string }[]>([])
 
   const fetchReports = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
+      params.append("type", "json")
       if (startDate) params.append("startDate", startDate)
       if (endDate) params.append("endDate", endDate)
-      if (productId) params.append("productId", productId)
+      if (productId && productId !== "all") params.append("productId", productId)
 
-      const res = await fetch(`/api/reports?${params.toString()}`)
+      const res = await fetch(`/api/report?${params.toString()}`)
+      if (!res.ok) throw new Error("Erro ao buscar relatório")
       const json = await res.json()
+      console.log("Relatório recebido:", json)
       setData(json.report || [])
     } catch (error) {
       toast.error(String(error))
@@ -65,7 +68,7 @@ export default function ReportsPage() {
   }, [fetchReports])
 
   async function fetchProducts() {
-    const supabase = createClient()
+    const supabase = createClientComponentClient()
     const { data, error } = await supabase
       .from("products")
       .select("id, name")
@@ -78,10 +81,10 @@ export default function ReportsPage() {
       const params = new URLSearchParams()
       if (startDate) params.append("startDate", startDate)
       if (endDate) params.append("endDate", endDate)
-      if (productId) params.append("productId", productId)
+      if (productId && productId !== "all") params.append("productId", productId)
       params.append("type", type)
 
-      const res = await fetch(`/api/reports/export?${params.toString()}`, {
+      const res = await fetch(`/api/report?${params.toString()}`, {
         method: "GET"
       })
 
@@ -95,7 +98,7 @@ export default function ReportsPage() {
       a.click()
       URL.revokeObjectURL(url)
     } catch (error) {
-      toast.error("Falha ao gerar arquivo de exportação ", {
+      toast.error("Falha ao gerar arquivo de exportação", {
         description: (error as Error)?.message ?? "Erro inesperado"
       })
     }
@@ -126,12 +129,12 @@ export default function ReportsPage() {
           </div>
           <div>
             <Label className="block text-sm mb-1">Produto</Label>
-            <Select onValueChange={(v) => setProductId(v)}>
+            <Select onValueChange={(v) => setProductId(v)} value={productId}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Selecione um produto" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {products.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.name}
@@ -160,9 +163,7 @@ export default function ReportsPage() {
         </CardHeader>
         <CardContent>
           {data.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Nenhum dado encontrado
-            </p>
+            <p className="text-muted-foreground text-sm">Nenhum dado encontrado</p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={data}>
