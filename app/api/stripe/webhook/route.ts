@@ -36,7 +36,6 @@ export const POST = async (req: NextRequest) => {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
         const userId = paymentIntent.metadata.userId
 
-        // Atualiza pedido para "payment_failed"
         const { error } = await supabase
           .from("orders")
           .update({ payment_status: "payment_failed" })

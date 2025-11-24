@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(
 
 async function createUsers() {
   try {
-    // Admin
+     Admin
     const { data: adminData, error: adminError } =
       await supabaseAdmin.auth.admin.createUser({
         email: "admin@test.com",
@@ -19,7 +19,7 @@ async function createUsers() {
     if (adminError) throw adminError
     console.log("Admin criado:", adminData.user.id)
 
-    // Atendente
+     Atendente
     const { data: attendantData, error: attendantError } =
       await supabaseAdmin.auth.admin.createUser({
         email: "attendant@test.com",
@@ -30,7 +30,7 @@ async function createUsers() {
     if (attendantError) throw attendantError
     console.log("Atendente criado:", attendantData.user.id)
 
-    // Cliente
+     Cliente
     const { data: customerData, error: customerError } =
       await supabaseAdmin.auth.admin.createUser({
         email: "cliente@test.com",
@@ -45,5 +45,5 @@ async function createUsers() {
   }
 }
 
-// Executar
+ Executar
 createUsers()

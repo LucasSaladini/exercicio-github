@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { Product } from "../../app/features/orders/types"
 
 export interface CartItem extends Product {
+  product_id: number
   id: string
   quantity: number
   observation?: string
@@ -32,14 +33,23 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   addItem: async (product, observation) => {
-    const res = await fetch("/api/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product_id: product.id, quantity: 1, observation }),
-    })
-    if (res.ok) {
-      await get().fetchCart()
+    const existingItem = get().items.find(i => i.product_id === Number(product.id))
+
+    if (existingItem) {
+      await fetch("/api/cart", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: existingItem.id, quantity: existingItem.quantity + 1 }),
+      })
+    } else {
+      await fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: product.id, quantity: 1, observation }),
+      })
     }
+  
+    await get().fetchCart()
   },
 
   removeItem: async (id) => {

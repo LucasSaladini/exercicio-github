@@ -1,15 +1,4 @@
-import { getUser } from "@/lib/supabase/server"
-import { redirect } from "next/navigation";
-
 export default async function TakeOrdersPage() {
-  const user = await getUser();
-
-  if (!user) return redirect("/(auth)/login");
-
-  if (user.role !== "admin") {
-    return redirect("/(protected)/menu");
-  }
-
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/orders?type=take`, {
     cache: "no-store",
   });

@@ -24,7 +24,6 @@ export default function MenuPage() {
   const { items: cartItems, addItem } = useCartStore()
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set())
 
-  // Fetch produtos com cache de 5 minutos
   const { data: products = [], isLoading: productsLoading } = useQuery<
     Product[]
   >({
@@ -34,10 +33,9 @@ export default function MenuPage() {
       if (!res.ok) throw new Error("Erro ao carregar produtos")
       return res.json()
     },
-    staleTime: 1000 * 60 * 5 // 5 minutos
+    staleTime: 1000 * 60 * 5
   })
 
-  // Mutation para adicionar ao carrinho
   const addToCartMutation = useMutation({
     mutationFn: async (product: Product) => {
       const res = await fetch("/api/cart", {

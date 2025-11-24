@@ -89,6 +89,22 @@ export default function OrdersPage() {
       </div>
     )
   }
+  
+  const statusLabel = (status: string): string => {
+    switch (status) {
+      case "pending":
+        return "Pendente"
+      case "preparing":
+        return "Em Preparo"
+      case "ready":
+        return "Pronto"
+      case "delivered":
+        return "Entregue"
+      default:
+        return status
+    }
+  }
+  
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -108,7 +124,7 @@ export default function OrdersPage() {
                     {order.customer_name || "Cliente"}
                   </CardTitle>
                   <Badge className={statusColor(order.status)}>
-                    {order.status}
+                    {statusLabel(order.status)}
                   </Badge>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
