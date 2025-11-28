@@ -17,16 +17,24 @@ export default function CheckoutPage() {
   const [products, setProducts] = useState<PaymentProduct[]>([])
   const [amount, setAmount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "cash_on_delivery">("online")
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchOrder = async () => {
+      setLoading(true)
+      setError(null)
+
       try {
+        // 1️⃣ Buscar o pedido
         const res = await fetch(`/api/orders/${id}`)
         if (!res.ok) throw new Error("Falha ao buscar pedido")
         const data = await res.json()
 
         setAmount(data.total_amount)
+        setPaymentMethod(data.payment_method)
 
+        // 2️⃣ Buscar produtos
         const productIds = data.order_items.map((item: any) => item.product_id)
         const productsRes = await fetch(`/api/products?ids=${productIds.join(",")}`)
         if (!productsRes.ok) throw new Error("Falha ao buscar produtos")
@@ -44,6 +52,7 @@ export default function CheckoutPage() {
 
         setProducts(mappedProducts)
 
+        // 3️⃣ Criar PaymentIntent apenas se for pagamento online
         if (data.payment_method === "online") {
           const paymentRes = await fetch("/api/payment/create-intent", {
             method: "POST",
@@ -51,15 +60,23 @@ export default function CheckoutPage() {
             body: JSON.stringify({
               orderId: data.id,
               amount: data.total_amount,
-              customerEmail: data.customer_name
+              customerEmail: data.customer_email // ⚠️ precisa ser email real
             })
           })
-          if (!paymentRes.ok) throw new Error("Falha ao criar pagamento")
+          if (!paymentRes.ok) {
+            const errorData = await paymentRes.json()
+            throw new Error(errorData.error || "Falha ao criar pagamento")
+          }
+
           const paymentData = await paymentRes.json()
           setClientSecret(paymentData.clientSecret)
+        } else {
+          // Se for pagamento na entrega, não precisa de clientSecret
+          setClientSecret(null)
         }
       } catch (err: any) {
         console.error(err)
+        setError(err.message || "Erro desconhecido")
       } finally {
         setLoading(false)
       }
@@ -69,13 +86,38 @@ export default function CheckoutPage() {
   }, [id])
 
   if (loading) return <div>Carregando...</div>
-  if (!clientSecret) return <div>Nenhum pagamento disponível</div>
+  if (error) return <div className="text-red-500 text-center">{error}</div>
 
   return (
     <div className="flex items-center justify-center min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h1 className="text-2xl font-bold text-center mb-4">Pagamento seguro</h1>
-        <PaymentForm clientSecret={clientSecret} amount={amount} products={products} />
+
+        {products.map(p => (
+          <div key={p.id} className="flex justify-between border-b pb-2 last:border-b-0 last:pb-0">
+            <span>{p.name} x{p.quantity}</span>
+            <span className="font-medium">R$ {(p.price * p.quantity).toFixed(2).replace(".", ",")}</span>
+          </div>
+        ))}
+
+        <div className="flex justify-between font-semibold pt-4 border-t mt-2">
+          <span>Total:</span>
+          <span>R$ {amount.toFixed(2).replace(".", ",")}</span>
+        </div>
+
+        {paymentMethod === "online" ? (
+          clientSecret ? (
+            <PaymentForm clientSecret={clientSecret} amount={amount} products={products} />
+          ) : (
+            <div className="text-yellow-600 text-center mt-4">
+              Preparando pagamento...
+            </div>
+          )
+        ) : (
+          <div className="text-green-600 text-center mt-4">
+            Pagamento na entrega selecionado ✅
+          </div>
+        )}
       </div>
     </div>
   )
