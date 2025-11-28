@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
 import { OrderSummary } from "../../features/orders/components/OrderSummary"
 import { useCartStore } from "@/hooks/useCartStore"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 
 interface Product {
   id: string
@@ -20,13 +20,16 @@ interface Product {
 }
 
 export default function MenuPage() {
-  const queryClient = useQueryClient()
-  const { items: cartItems, addItem } = useCartStore()
+  const { items: cartItems, addItem, fetchCart } = useCartStore()
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set())
 
-  const { data: products = [], isLoading: productsLoading } = useQuery<
-    Product[]
-  >({
+  // Carrega carrinho do backend ao abrir a página
+  useEffect(() => {
+    fetchCart()
+  }, [fetchCart])
+
+  // Produtos (pode manter React Query aqui sem problemas)
+  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["products"],
     queryFn: async () => {
       const res = await fetch("/api/products")
@@ -34,61 +37,6 @@ export default function MenuPage() {
       return res.json()
     },
     staleTime: 1000 * 60 * 5
-  })
-
-  const addToCartMutation = useMutation({
-    mutationFn: async (product: Product) => {
-      const res = await fetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product_id: product.id,
-          quantity:
-            cartItems.find((item) => item.id === product.id)?.quantity ?? 1
-        })
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error ?? "Erro ao adicionar ao carrinho")
-      }
-
-      return res.json()
-    },
-    onSuccess: async (_, product: Product) => {
-      const quantity =
-        cartItems.find((item) => item.id === product.id)?.quantity ?? 1
-
-      const item: Product = {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        quantity,
-        description: product.description,
-        stock_quantity: product.stock_quantity,
-        created_at: product.created_at,
-        updated_at: product.updated_at
-      }
-
-      toast.success(`${product.name} adicionado ao carrinho!`)
-      await queryClient.invalidateQueries({ queryKey: ["cart"] })
-
-      setAddingIds((prev) => {
-        const next = new Set(prev)
-        next.delete(product.id)
-        return next
-      })
-    },
-    onError: (err: unknown, product: Product) => {
-      if (err instanceof Error) toast.error(err.message)
-      else toast.error(String(err))
-
-      setAddingIds((prev) => {
-        const next = new Set(prev)
-        next.delete(product.id)
-        return next
-      })
-    }
   })
 
   if (productsLoading) return <p className="p-6">Carregando produtos...</p>
@@ -115,9 +63,18 @@ export default function MenuPage() {
               </div>
               <Button
                 className="mt-4"
-                onClick={() => {
+                onClick={async () => {
                   setAddingIds((prev) => new Set(prev).add(product.id))
-                  addToCartMutation.mutate(product)
+                  
+                  await addItem(product)
+
+                  toast.success(`${product.name} adicionado ao carrinho!`)
+
+                  setAddingIds((prev) => {
+                    const next = new Set(prev)
+                    next.delete(product.id)
+                    return next
+                  })
                 }}
                 disabled={isAdding}
               >
