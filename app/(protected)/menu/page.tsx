@@ -70,7 +70,6 @@ export default function MenuPage() {
         updated_at: product.updated_at
       }
 
-      addItem(item)
       toast.success(`${product.name} adicionado ao carrinho!`)
       await queryClient.invalidateQueries({ queryKey: ["cart"] })
 
