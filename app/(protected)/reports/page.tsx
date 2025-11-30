@@ -33,6 +33,27 @@ type ReportItem = {
   avgRating: number
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-black/80 border border-white/20 p-3 rounded-lg shadow-md">
+        <p className="text-white font-semibold mb-1">{label}</p>
+
+        {payload.map((entry: any, index: number) => (
+          <p key={index} className="text-white text-sm">
+            {entry.name}:{" "}
+            {entry.value.toLocaleString("pt-BR", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 2
+            })}
+          </p>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
 export default function ReportsPage() {
   const [data, setData] = useState<ReportItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -53,7 +74,6 @@ export default function ReportsPage() {
       const res = await fetch(`/api/report?${params.toString()}`)
       if (!res.ok) throw new Error("Erro ao buscar relatório")
       const json = await res.json()
-      console.log("Relatório recebido:", json)
       setData(json.report || [])
     } catch (error) {
       toast.error(String(error))
@@ -119,6 +139,7 @@ export default function ReportsPage() {
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
+
           <div>
             <Label className="block text-sm mb-1">Data Final</Label>
             <Input
@@ -127,6 +148,7 @@ export default function ReportsPage() {
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
+
           <div>
             <Label className="block text-sm mb-1">Produto</Label>
             <Select onValueChange={(v) => setProductId(v)} value={productId}>
@@ -143,6 +165,7 @@ export default function ReportsPage() {
               </SelectContent>
             </Select>
           </div>
+
           <Button onClick={fetchReports} disabled={loading}>
             {loading ? "Carregando..." : "Filtrar"}
           </Button>
@@ -161,6 +184,7 @@ export default function ReportsPage() {
             </Button>
           </div>
         </CardHeader>
+
         <CardContent>
           {data.length === 0 ? (
             <p className="text-muted-foreground text-sm">Nenhum dado encontrado</p>
@@ -170,9 +194,9 @@ export default function ReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="productName" />
                 <YAxis />
-                <Tooltip />
-                <Bar dataKey="totalSales" name="Vendas" />
-                <Bar dataKey="totalRevenue" name="Faturamento" />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="totalSales" name="Vendas" fill="white" />
+                <Bar dataKey="totalRevenue" name="Faturamento" fill="white" />
               </BarChart>
             </ResponsiveContainer>
           )}
